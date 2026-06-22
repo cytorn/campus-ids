@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>IDS — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #090e17;
+      --surface:  #0d1520;
+      --surface2: #111d2c;
+      --border:   #1a2e45;
+      --accent:   #00e5ff;
+      --accent2:  #ff4d6d;
+      --warn:     #ffd600;
+      --success:  #00e676;
+      --text:     #cdd9e5;
+      --muted:    #4a6278;
+      --mono:     'Share Tech Mono', monospace;
+      --sans:     'Rajdhani', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+    }
+
+    /* Subtle grid overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,229,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,0.025) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Navbar ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      height: 56px;
+      background: rgba(9,14,23,0.92);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-logo {
+      width: 22px; height: 22px;
+      fill: var(--accent);
+    }
+
+    .nav-title {
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+    }
+
+    .nav-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--success);
+      letter-spacing: 0.08em;
+    }
+
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: blink 1.5s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.3; }
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .nav-user {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .nav-user span {
+      color: var(--text);
+    }
+
+    .btn-logout {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      color: var(--accent2);
+      border: 1px solid rgba(255,77,109,0.3);
+      background: transparent;
+      padding: 5px 14px;
+      border-radius: 2px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-logout:hover {
+      background: rgba(255,77,109,0.12);
+    }
+
+    /* ── Layout ── */
+    .page {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 36px 24px 60px;
+    }
+
+    .page-header {
+      margin-bottom: 32px;
+    }
+
+    .page-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #fff;
+      text-transform: uppercase;
+    }
+
+    .page-header p {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      margin-top: 6px;
+    }
+
+    /* ── Upload Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 28px 32px;
+      margin-bottom: 28px;
+      position: relative;
+    }
+
+    .card-label {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.14em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 4px;
+      padding: 40px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(0,229,255,0.04);
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .drop-icon {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .drop-text {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .drop-sub {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    #file-name-display {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--accent);
+      margin-top: 10px;
+      min-height: 18px;
+    }
+
+    /* Analyze button */
+    .btn-analyze {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-family: var(--sans);
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 13px 36px;
+      border-radius: 3px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: color 0.25s, box-shadow 0.25s;
+    }
+
+    .btn-analyze::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--accent);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.25s ease;
+      z-index: -1;
+    }
+
+    .btn-analyze:hover {
+      color: #000;
+      box-shadow: 0 0 24px rgba(0,229,255,0.3);
+    }
+
+    .btn-analyze:hover::before { transform: scaleX(1); }
+
+    /* ── Error Box ── */
+    .error-box {
+      background: rgba(255,77,109,0.08);
+      border: 1px solid rgba(255,77,109,0.35);
+      border-radius: 3px;
+      padding: 14px 18px;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--accent2);
+      margin-bottom: 24px;
+    }
+
+    /* ── Stats Row ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 20px 20px 16px;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .stat-card:nth-child(2) { animation-delay: 0.05s; }
+    .stat-card:nth-child(3) { animation-delay: 0.10s; }
+    .stat-card:nth-child(4) { animation-delay: 0.15s; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .stat-value {
+      font-family: var(--mono);
+      font-size: 2rem;
+      color: var(--accent);
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .stat-label {
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    /* ── Alerts ── */
+    .alert-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .alert-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: var(--surface2);
+      border-radius: 3px;
+      padding: 16px 18px;
+      border-left: 3px solid;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .alert-item.critical {
+      border-left-color: var(--accent2);
+      background: rgba(255,77,109,0.05);
+    }
+
+    .alert-item.high {
+      border-left-color: var(--warn);
+      background: rgba(255,214,0,0.04);
+    }
+
+    .alert-icon {
+      font-size: 1.3rem;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
+    .alert-body {}
+
+    .alert-type {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .alert-item.critical .alert-type { color: var(--accent2); }
+    .alert-item.high .alert-type      { color: var(--warn); }
+
+    .alert-ip {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+
+    .alert-detail {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .no-alert {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 20px;
+      background: rgba(0,230,118,0.05);
+      border: 1px solid rgba(0,230,118,0.2);
+      border-radius: 3px;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--success);
+      animation: fadeUp 0.4s ease both;
+    }
+
+    /* ── Traffic Table ── */
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    thead tr {
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      font-family: var(--mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      text-transform: uppercase;
+      text-align: left;
+      padding: 10px 14px;
+      font-weight: 400;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(26,46,69,0.5);
+      transition: background 0.15s;
+      animation: fadeUp 0.35s ease both;
+    }
+
+    tbody tr:hover {
+      background: rgba(0,229,255,0.04);
+    }
+
+    td {
+      padding: 11px 14px;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+    }
+
+    .td-ip { color: var(--accent); }
+
+    .td-count {
+      font-weight: 700;
+    }
+
+    .count-high  { color: var(--warn); }
+    .count-crit  { color: var(--accent2); }
+    .count-ok    { color: var(--success); }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      padding: 2px 8px;
+      border-radius: 2px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .badge-target   { background: rgba(0,229,255,0.12); color: var(--accent); }
+    .badge-high     { background: rgba(255,214,0,0.1); color: var(--warn); }
+    .badge-critical { background: rgba(255,77,109,0.12); color: var(--accent2); }
+    .badge-ok       { background: rgba(0,230,118,0.08); color: var(--success); }
+
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: #fff;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Nav ── -->
+<nav>
+  <div class="nav-brand">
+    <svg class="nav-logo" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l5 2.18V11c0 3.5-2.33 6.79-5 7.93C9.33 17.79 7 14.5 7 11V7.18L12 5z"/></svg>
+    <span class="nav-title">CAMPUS-IDS</span>
+  </div>
+  <div class="nav-status">
+    <div class="status-dot"></div>
+    SYSTEM ONLINE
+  </div>
+  <div class="nav-right">
+    <span class="nav-user">operator: <span>{{ username }}</span></span>
+    <a href="/logout" class="btn-logout">[ LOGOUT ]</a>
+  </div>
+</nav>
+
+<!-- ── Page ── -->
+<div class="page">
+  <div class="page-header">
+    <h1>Traffic Analysis</h1>
+    <p>// Upload a .pcap capture file to begin intrusion detection analysis</p>
+  </div>
+
+  <!-- Upload Card -->
+  <div class="card">
+    <div class="card-label">01 &mdash; Upload Capture File</div>
+
+    <form method="POST" enctype="multipart/form-data">
+      <div class="drop-zone" id="dropZone">
+        <input type="file" name="pcap_file" id="pcapFile" accept=".pcap" />
+        <span class="drop-icon">📦</span>
+        <div class="drop-text">Drop .pcap file here or click to browse</div>
+        <div class="drop-sub">Only .pcap files accepted</div>
+      </div>
+      <div id="file-name-display"></div>
+      <br/>
+      <button type="submit" class="btn-analyze">⚡ Analyze Traffic</button>
+    </form>
+  </div>
+
+  <!-- Error -->
+  {% if error %}
+  <div class="error-box">⛔ &nbsp; {{ error }}</div>
+  {% endif %}
+
+  <!-- Results -->
+  {% if results %}
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value">{{ results.total_packets }}</div>
+      <div class="stat-label">Total Packets</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ results.capture_duration }}s</div>
+      <div class="stat-label">Capture Duration</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ results.target_activity_duration }}s</div>
+      <div class="stat-label">Target Activity Duration</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ results.packet_rate }}</div>
+      <div class="stat-label">Packet Rate / Sec</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ results.total_ips }}</div>
+      <div class="stat-label">Unique IPs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color: {% if results.target_packet_rate > results.detection_threshold %}var(--accent2){% else %}var(--success){% endif %}">
+        {{ results.target_packet_rate }}
+      </div>
+      <div class="stat-label">Target Rate / Sec</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color: {% if results.target_packet_count > results.packet_count_threshold %}var(--accent2){% else %}var(--success){% endif %}">
+        {{ results.target_packet_count }}
+      </div>
+      <div class="stat-label">Target Packet Count</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ results.detection_threshold }}/s</div>
+      <div class="stat-label">Rate Threshold</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ results.packet_count_threshold }}</div>
+      <div class="stat-label">Count Threshold</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color: {% if results.alerts|length > 0 %}var(--accent2){% else %}var(--success){% endif %}">
+        {{ results.alerts|length }}
+      </div>
+      <div class="stat-label">Alerts Triggered</div>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <div class="card">
+    <div class="card-label">02 &mdash; Intrusion Alerts</div>
+
+    {% if results.alerts and results.alerts|length > 0 %}
+<div class="alert-list">
+  {% for alert in results.alerts %}
+  <div class="alert-item {{ alert.severity }}">
+    <div class="alert-icon">{{ alert.icon }}</div>
+    <div class="alert-body">
+      <div class="alert-type">{{ alert.type }} DETECTED</div>
+      <div class="alert-ip">{{ alert.ip }}</div>
+      <div class="alert-detail">{{ alert.detail }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="no-alert">
+  <span>✅</span> {{ results.status_message }}
+</div>
+{% endif %}
+
+  <!-- Traffic Summary -->
+  <div class="card">
+    <div class="card-label">03 &mdash; Traffic Summary</div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Source IP</th>
+            <th>Packet Count</th>
+            <th>Packet Rate / Sec</th>
+            <th>Unique TCP Ports</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in results.traffic_summary %}
+          {% set is_target = (row.ip == results.target_ip) %}
+          <tr style="{% if loop.index > 1 %}animation-delay: {{ loop.index * 0.04 }}s{% endif %}">
+            <td style="color: var(--muted);">{{ loop.index }}</td>
+            <td class="td-ip">
+              {{ row.ip }}
+              {% if is_target %}<span class="badge badge-target">monitored</span>{% endif %}
+            </td>
+            <td class="td-count
+              {% if is_target and (row.packet_rate > results.detection_threshold or row.packet_count > results.packet_count_threshold) %}count-crit
+              {% elif row.packet_rate > (results.detection_threshold * 0.75) %}count-high
+              {% else %}count-ok{% endif %}">
+              {{ row.packet_count }}
+            </td>
+            <td style="color: var(--text);">{{ row.packet_rate }}</td>
+            <td style="color: var(--text);">{{ row.unique_tcp_ports }}</td>
+            <td>
+              {% if is_target %}
+                {% if (row.packet_rate > results.detection_threshold or row.packet_count > results.packet_count_threshold) and row.unique_tcp_ports > 50 %}
+                  <span class="badge badge-critical">⚠ high + port scan</span>
+                {% elif row.packet_rate > results.detection_threshold or row.packet_count > results.packet_count_threshold %}
+                  <span class="badge badge-high">high traffic</span>
+                {% elif row.unique_tcp_ports > 50 %}
+                  <span class="badge badge-critical">port scan</span>
+                {% else %}
+                  <span class="badge badge-ok">normal</span>
+                {% endif %}
+              {% else %}
+                <span class="badge badge-ok">–</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+
+<script>
+  // Update filename display when file is chosen
+  document.getElementById('pcapFile').addEventListener('change', function () {
+    const display = document.getElementById('file-name-display');
+    display.textContent = this.files.length ? '> ' + this.files[0].name : '';
+  });
+
+  // Drag-over highlight
+  const dz = document.getElementById('dropZone');
+  ['dragenter','dragover'].forEach(e => dz.addEventListener(e, () => dz.classList.add('dragover')));
+  ['dragleave','drop'].forEach(e => dz.addEventListener(e, () => dz.classList.remove('dragover')));
+</script>
+</body>
+</html>
